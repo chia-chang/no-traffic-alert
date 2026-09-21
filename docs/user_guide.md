@@ -118,4 +118,4 @@ which is a provisioning conversation rather than an incident.
 
 ---
 
-![Zero Traffic Alert dashboard](../images/00-header.png)
+![Zero Traffic Alert dashboard](../images/ZERO Traffic Alert.png)
