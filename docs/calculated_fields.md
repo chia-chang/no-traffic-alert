@@ -236,21 +236,3 @@ Tableau Public and because the original expressions contained real account ident
 Note the interaction with section 1: these are context filters, so they *do* run before the FIXED
 LODs. That is intentional and correct — a manager's baselines should be computed within their own
 portfolio. It is also the reason the ordering rule matters enough to be worth stating twice.
-
----
-
-## Known issue
-
-Tables ③ and ④ in the current build route on `Casino Provider Filter`, which takes the maximum
-zero-day count across **all** providers — including ones that have never carried traffic. The
-effect is that a single batch-enabled, never-live integration pulls every casino it touches onto
-the list. On the synthetic dataset that is **34 casinos, 46% of table ④**, listed purely because
-of one dead provider.
-
-`Casino has stopped provider` already encodes the correct test — same logic, restricted to
-providers with `Provider have-traffic days > 0`. Swapping the filter on those two sheets is a
-one-field change and is the next fix queued.
-
-Leaving this documented rather than quietly patched is deliberate: the field that fixes it was
-built as part of the greying work, and the fact that it was not also wired into the routing is
-exactly the kind of gap that a written field inventory is for.
