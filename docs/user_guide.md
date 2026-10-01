@@ -71,9 +71,7 @@ Hover over any cell to see that provider's average daily wager, how many days th
 
 | Column | Meaning |
 | --- | --- |
-| Casino Go Live Date | When this casino went live. 
-An old date + still no traffic = long dead. 
-A recent date = maybe just not started yet. |
+| Casino Go Live Date | When this casino went live. An old date + still no traffic = long dead. A recent date = maybe just not started yet. |
 
 → **Does this line still need to exist?** If not, close it so we stop maintaining settings for it.
 
