@@ -1,121 +1,92 @@
-# Zero Traffic Alert — how to read it
+# Zero Traffic Alert User Guide
 
-Sent out once a week. If nothing needs attention, you get no email.
+*This is the guide the account managers receive every week, with names replaced by the synthetic ones used in this repository. Every casino, manager, provider and figure here is generated.*
 
-> **Note:** This is the public version of the guide, written against a synthetic dataset.
-> Provider names (`Provider 1 (Live)`, `Provider 2` …) and all figures are generated.
+The alert gives you, at a glance, the casinos with no traffic on some day this week and the casinos with no traffic for 50 days.
 
 ---
 
 ## Definitions
 
-- **50d** — the 50-day window ending on the report day. Both dates are printed at the top of the page.
-- **This week** — the last 7 days ending on the report day.
-- **Total wager (50d)** — sum of wager across the 50-day window, all providers.
-- **Potential Wager** — for each provider that had no traffic on some days this week: its average
-  daily wager (over the days it *did* have traffic in the 50d window) × the number of days it had
-  no traffic this week. Summed per casino.
-  **It is an estimate for ordering, not a financial figure.**
+- **Report day:** the last day with data. All windows end on this day (dates shown at the top of the page).
+- **This week:** the 7 days ending on the report day.
+- **Baseline:** the 43 days before this week. For each provider, its **average daily wager over the days it actually had traffic** in that window.
+- **Zero-traffic day:** a day on which a provider at a casino had no wager at all. Counted per provider, and separately for the whole casino (all providers together).
+- **Potential Wager:** for each provider that had at least one zero-traffic day this week: *its average daily wager × its zero-traffic days this week*. Summed per casino. The row total always equals the sum of the colored cells in that row.
+    
+    → This answers: at the rate this provider normally runs, how much did the no traffic days cost?
+    
+    Example (not from any specific casino):
+    
+    | Provider | Avg daily wager (days with traffic) | No traffic days this week | Potential Wager | Counts? |
+    | --- | --- | --- | --- | --- |
+    | Provider 1 (Live) | 300,000 | 0 | – | no — has traffic every day |
+    | Provider 1 (RNG) | 40,000 | 2 | **80,000** | yes |
+    | Provider 2 | 3,000 | 4 | **12,000** | yes |
+    | Provider 3 | 120 | 7 | 840 | no — potential under €1,000 |
+    | Provider 5 | 800 | 1 | 800 | no — potential under €1,000 |
+    
+    → Potential Wager = 80,000 + 12,000 = **92,000**
+    
 
-  Worked example (illustrative numbers, not from any casino in the dataset):
+### What is not included
 
-  | Provider | Total wager (50d) | Days with traffic (50d) | Average daily wager | Zero traffic days | Potential wager |
-  |---|---|---|---|---|---|
-  | Provider 1 (Live) | 15,000,000 | 30 | 500,000 | 1 | **500,000** |
-  | Provider 1 (RNG) | 50,000 | 50 | 1,000 | 0 | 0 |
-  | Provider 2 | 1,500,000 | 20 | 75,000 | 4 | **300,000** |
-  | Provider 3 | — | 0 | — | 7 | 0 |
+A provider counts when **its potential this week is at least €1,000** (average daily wager × zero-traffic days). Two reasons for the number:
 
-  → Potential Wager = 500,000 + 300,000 = **800,000**
+- **Below €1,000 it cannot be told apart from an ordinary week.** For the smallest providers on this table the normal week-to-week swing is about €900. Larger providers lose far more than €1,000 from a single no traffic day, so €1000 is strict for small providers and sensitive for large ones.
+- **It is not worth attention at this point.** It drops the very small lines whose silence is normal anyway: in the 5 weeks we measured, two out of three providers under €1,000/week had at least one full no traffic day. Those lines add up to 0.001% of all wager; if they stay silent they will show on the 50 day list at some point.
 
-  Note the last row: a provider that has never carried traffic contributes nothing, however many
-  zero days it has. That is deliberate — see *Good to know* below.
+I set this value as a workbook parameter. The number was decided based on 5 weeks of data and is suggested to be re-evaluated at least every quarter. The data behind it is in `design-decisions.md`.
 
 ---
 
-## 1 · Never live in the window (red)
+## No traffic this week
 
-**Casinos with zero traffic across the whole 50-day window**, or since their go-live date if they
-went live more recently.
-
-A ● means that provider is live for this casino.
+**Each row is a casino where at least one provider had a full day with zero traffic this week.** Casinos that ran every day, even if they did less than usual, are not in this table. Biggest potential first.
 
 | Column | Meaning |
-|---|---|
-| Casino Go Live Date | When this casino went live. An old date and still no traffic = long dead. A recent date = possibly just not started yet. |
+| --- | --- |
+| No traffic entire casino | How many days this week the **entire casino** (all providers together) had zero traffic. Blank = the casino had some traffic every day. |
+| Potential Wager | € the silent days cost this week, across the providers that had zero-traffic days. Rows are sorted by this. |
+| Provider cells | **Color** = how many days this week that provider had zero traffic (darker = more). **Number** = that provider's potential (average daily wager × zero-traffic days). |
+| Blank cell | Nothing worth attention: the provider ran every day this week, or is not set up for this casino, or its potential is under €1,000. |
+
+**Understanding the rows and cells**
+
+| What you see | What it means | How to interpret it |
+| --- | --- | --- |
+| Whole row colored, "No traffic entire casino = 7 days" | The whole casino stopped, all week. | Is it some kind of technical issue, switched off, or moved? |
+| Whole row colored, "No traffic entire casino" is blank | Each provider had its own zero days, but never all on the same day. The casino as a whole was never dark. | Is it a lobby or integration change? |
+| One dark cell, large number | One important provider stopped for the week. | Did the casino remove it from lobby? integration broken? |
+| One light cell, large number | A big provider went dark for a day or two. | Most valuable case: one day earlier saves one day's wager. |
+| Several dark cells, small numbers | Small providers dead for a long time. | Likely going to reach the 50 day list next month. |
+
+Hover over any cell to see that provider's average daily wager, how many days that average is based on, and its zero-traffic days this week.
+
+→ **Why did this stop?** Connection, client-side change, lobby change, or planned?
+
+## No traffic 50 days
+
+**Casinos with zero traffic for the whole 50-day window**, or since their go-live date if they went live more recently. ● = provider is live for this casino.
+
+| Column | Meaning |
+| --- | --- |
+| Casino Go Live Date | When this casino went live. 
+An old date + still no traffic = long dead. 
+A recent date = maybe just not started yet. |
 
 → **Does this line still need to exist?** If not, close it so we stop maintaining settings for it.
 
 ---
 
-## 2 · Underperforming casinos (brown)
-
-**Casinos that had some traffic, but less than the cleanup threshold in total wager across 50 days.**
-The threshold is shown in the page header and can be adjusted.
-
-A ● means that provider is live for this casino.
-
-| Column | Meaning |
-|---|---|
-| Days since last traffic | How many days ago it last had any traffic. |
-| Days with traffic (50d) | Of the last 50 days, how many had any traffic at all. |
-| Total wager (50d) | Total wager over the 50 days. |
-
-→ **Same question as table 1: is this line worth keeping?**
-
----
-
-## 3 · Whole casino went dark this week (orange)
-
-**Running casinos (above the cleanup threshold) that had at least one full day with no traffic
-this week.**
-
-● had traffic that day · ✖ no traffic that day · **grey ✖** this provider had no traffic in the
-whole 50-day window
-
-| Column | Meaning |
-|---|---|
-| Casino Last Traffic Day | Last day the casino had any traffic. |
-| Days since last traffic | How long ago that was. 0 = it is back today. |
-| Zero Traffic Days | How many of the last 7 days the whole casino was dark. |
-| Potential Wager | Estimated wager missed this week (see definition above). |
-
-→ **Why did the whole casino stop?** Connection, client-side change, or planned?
-
----
-
-## 4 · A provider stopped, casino still running (yellow)
-
-**Casinos that ran every day this week, but one or more providers did not.**
-
-| Column | Meaning |
-|---|---|
-| Potential Wager | Estimated wager missed this week from the stopped providers. |
-| Number in each provider cell | How many of the last 7 days that provider had no traffic. Colour runs green (0) → yellow → dark red (7). |
-| Grey cell | This provider has had no traffic in the whole 50-day window. |
-
-→ **Is that provider still meant to be live for this client?**
-
-**How to read a row here.** The cells that are *still green* are the useful part. Four green and
-one red means the client is alive and reachable and the fault is specific to one integration —
-worth a call today. If most of the row is grey, this casino has a lot of enabled-but-unused lines,
-which is a provisioning conversation rather than an incident.
-
----
-
 ## Good to know
 
-- **A casino appears in exactly one table.** Tables 1 and 2 are about lines that are barely or
-  never used. Tables 3 and 4 are about lines that are normally active and stopped. If you are
-  looking for a casino and cannot find it, it is healthy — nothing about it needed reporting.
-- **Recently added casinos can land in table 1 or 2 simply because they have not started yet.**
-  Check the go-live date before treating it as dead.
-- **Grey cells never raise an alert on their own.** A provider that has never carried traffic in
-  the window is shown, but it does not pull a casino onto the list and it contributes nothing to
-  Potential Wager. This stops one batch of enabled-but-never-live integrations from flooding the
-  report — which is what happened in the previous version.
-- **Only dates after each casino's go-live date are counted.**
+- Potential wager is the silent days priced at the provider's own normal daily rate. A provider with 7 zero-traffic days shows a full week of its usual wager; one with 1 zero day shows one day's worth. Color tells you how long, while the number tells you how much.
+- The average only uses days with traffic. That is deliberate, so a new casino appears at its real rate from week one, and a casino that has been quiet for a while is not measured against a diluted baseline. The flip side: a provider that ran on only a couple of days in the whole window is measured on those days and can look bigger than it is. The tooltip shows how many days the average is based on.
+- A casino that shuts down for good stays in *No traffic this week* until it reaches the 50 day list, and its potential stays at the level it used to run at.
+- A big client that is shrinking but never hits zero is out of scope here.
+- Only dates after each casino's go-live are counted.
 
 ---
 
-![Zero Traffic Alert dashboard](../images/ZERO Traffic Alert.png)
+![Zero Traffic Alert dashboard](../images/1. Final/1. Final No Traffic Alert.png)
