@@ -1,235 +1,149 @@
 # Calculated fields
 
-Every calculated field in the workbook, in dependency order, with what it is for and why it is
-written that way. Formulas are exactly as they appear in the packaged workbook.
+The fields behind `1. Final`, in the order they build on each other. One line of "why" each; the
+formulas are exactly as in the workbook.
 
-Throughout, the grain of the source table is **environment × casino × provider × day**, with an
-additional set of casino-level rows distinguished by `Grouping Set Level`.
-
----
-
-## 1. The window
-
-Everything downstream hangs off one field, and it is data-driven rather than clock-driven.
-
-```
-Report Day     =  { MAX([Date Only]) }
-Date Start _ 7 =  DATE(DATEADD('day', -6, [Report Day]))
-Date Start _ 50 = DATE(DATEADD('day', -49, [Report Day]))
-```
-
-**Why `MAX(DateOnly)` and not `TODAY()`.** The pipeline lands a day's data some hours after
-midnight. Anchoring to the clock means that every morning, for a few hours, the report silently
-describes a window whose last day is empty — and shows it as a wave of new zero-traffic alerts.
-Anchoring to the data means the window only advances once the data exists.
-
-The cost is that the window moves whenever the source refreshes, which makes side-by-side
-verification harder: two sheets compared across a refresh are not comparing the same period. All
-three date fields are printed in the page header so a reader can always see which window they are
-looking at.
-
-```
-Date Filter _ 7 days = [Date Only] >= [Date Start _ 7]
-50 days filter       = [Date Only] > DATEADD('day', -50, [Report Day])
-```
-
-> ⚠️ **Never add `Date Filter _ 7 days` to context.** FIXED LODs are evaluated *before* dimension
-> filters but *after* context filters. Every 50-day baseline in this workbook — active rate,
-> average daily wager, days with traffic — depends on that ordering. Promoting the 7-day filter to
-> a context filter silently collapses all of them to 7 days. Nothing errors; the numbers just
-> quietly become wrong.
+Source grain: **environment × casino × provider × day**. The table also carries casino-level rows,
+marked by `Grouping Set Level`, so every FIXED expression guards on
+`[Grouping Set Level] = "casino-provider"` to avoid counting them twice.
 
 ---
 
-## 2. Turning a flag into a date
+## 1. Windows
+
+```
+Report Day      = { MAX([Date Only]) }
+Date Start _ 7  = DATE(DATEADD('day',  -6, [Report Day]))    -- this week starts here
+Date Start _ 50 = DATE(DATEADD('day', -49, [Report Day]))    -- baseline starts here
+```
+
+Why `MAX(date)` and not `TODAY()`: data lands hours after midnight. Anchoring to the clock would
+show an empty last day as a wave of false alerts every morning.
+
+- **Baseline** = `Date Start _ 50` to the day before `Date Start _ 7` (43 days)
+- **This week** = `Date Start _ 7` to `Report Day` (7 days)
+
+## 2. Flag → date
 
 ```
 Date _ Have Traffic = IF [Traffic Flag] = 'Have Traffic' THEN [Date Only] END
-Date _ No Traffic   = IF [Traffic Flag] = 'No Traffic'   THEN [Date Only] END
 ```
 
-**Why convert a flag to a nullable date.** It makes `COUNTD` and `MAX` do the counting. `COUNTD`
-of a nullable date gives "how many distinct days had traffic" with no conditional aggregation, and
-`MAX` gives "the last day it had traffic" for free. It also means a combination that has *never*
-had traffic yields `NULL` rather than `0`, which is the distinction tables 1 and 4 are built on —
-never-live and stopped-yesterday are different questions and should not both be zero.
+A nullable date lets `COUNTD` count "days with traffic" with no conditional aggregation. Never
+had traffic → `NULL`, not `0`.
 
----
-
-## 3. Casino level
+## 3. Zero-traffic days this week
 
 ```
-Casino Last Traffic Day = { FIXED [Environment code],[Casino ID] : MAX([Date _ Have Traffic]) }
-Casino no traffic filter = ISNULL([Casino Last Traffic Day])
-Days since last traffic  = DATEDIFF('day', [Casino Last Traffic Day], [Report Day])
+Casino Provider ZERO traffic days =                       -- per provider → cell color
+  7 - { FIXED [Environment code], [Casino ID], [Game Provider] :
+        COUNTD( IF [Date Only] >= [Date Start _ 7] THEN [Date _ Have Traffic] END ) }
 
-Zero Traffic Days = 7 - { FIXED [Environment code],[Casino ID] :
-                          COUNTD(IF [Date Only] >= [Date Start _ 7]
-                                 THEN [Date _ Have Traffic] END) }
-
-Days with traffic (50d) = { FIXED [Environment code],[Casino ID] :
-                            COUNTD(IF [Date Only] >= [Date Start _ 50]
-                                   THEN [Date _ Have Traffic] END) }
-
-Total wager (50d) = { FIXED [Environment code],[Casino ID] :
-                      SUM(IF [Date Only] >= [Date Start _ 50] THEN [Wager Eur] END) }
-
-Casino Go Live Date = { FIXED [Environment code],[Casino ID] :
-                        MIN(IFNULL([Go Live Date], DATE('2099-12-31'))) }
+Zero Traffic Days =                                       -- whole casino → "No traffic entire casino"
+  7 - { FIXED [Environment code], [Casino ID] :
+        COUNTD( IF [Date Only] >= [Date Start _ 7] THEN [Date _ Have Traffic] END ) }
 ```
 
-**Why the date restriction lives inside the LOD instead of on the sheet.** Because these have to
-be 50-day baselines regardless of what the sheet is filtered to. A sheet showing 7 days still needs
-the 50-day average to compare against. Putting the window inside the expression makes the field
-mean the same thing on every sheet it appears on.
+Both unchanged from the original report: the redesign changed what is *shown*, not what counts as silence.
 
-**Why `IFNULL(..., 2099-12-31)` in the go-live date.** `MIN` skips nulls, so a casino with one
-provider missing a go-live date would silently report the *other* provider's date as the casino's.
-Substituting a sentinel far-future date makes a missing value lose the `MIN` comparison instead of
-disappearing from it — a null then surfaces as an obviously wrong date rather than a plausible
-wrong one.
-
----
-
-## 4. Provider level
+## 4. Baseline rate
 
 ```
-Provider last traffic day = { FIXED [Environment code],[Casino ID],[Game Provider] :
-                              MAX([Date _ Have Traffic]) }
-
-Provider have-traffic days = { FIXED [Environment code],[Casino ID],[Game Provider] :
-                               COUNTD(IF [Date Only] >= [Date Start _ 50]
-                                      THEN [Date _ Have Traffic] END) }
-
-Provider days dark = DATEDIFF('day', [Provider last traffic day], [Report Day])
-
-Casino Provider ZERO traffic days =
-  7 - { FIXED [Environment code],[Casino ID],[Game Provider] :
-        COUNTD(IF [Date Only] >= [Date Start _ 7] THEN [Date _ Have Traffic] END) }
+Provider Avg Daily Wager =
+  { FIXED [Environment code], [Casino ID], [Game Provider] :
+      SUM( IF [Grouping Set Level] = "casino-provider"
+           AND [Date Only] >= [Date Start _ 50] AND [Date Only] < [Date Start _ 7]
+           THEN [Wager Eur] END ) }
+  /
+  { FIXED [Environment code], [Casino ID], [Game Provider] :
+      COUNTD( IF [Grouping Set Level] = "casino-provider"
+              AND [Date Only] >= [Date Start _ 50] AND [Date Only] < [Date Start _ 7]
+              THEN [Date _ Have Traffic] END ) }
 ```
 
-`Provider have-traffic days = 0` is the workbook's definition of **"never carried traffic in the
-window"**, and it is used everywhere that distinction matters. It is deliberately a *condition*
-rather than a list of provider names: one provider had been enabled in bulk across most of the
-client base and never went live, and hard-coding its name would have been a rule that broke
-silently the next time somebody did the same thing with a different provider.
+Baseline wager ÷ baseline days **with traffic**. Silent days do not dilute it, so a stopped casino
+keeps its real rate and a new casino is measured from day one. No baseline traffic → divide by zero
+→ `NULL` → never enters the gates below. The tooltip shows how many days the average rests on.
 
-⚠️ **Aggregating a FIXED LOD on a shelf.** These are constant within their own grain, so putting one on Rows with the default `SUM` multiplies it by the number of underlying records — a days-since value of 30 renders as 11,370. Use `MIN`, `MAX` or `ATTR`. The symptom is a number that is suspiciously close to a round multiple of the true one.
-
----
-
-## 5. Routing
-
-The four tables are mutually exclusive, and the exclusivity is enforced here rather than by
-convention.
+## 5. Potential
 
 ```
-Casino Provider Filter = { FIXED [Environment code],[Casino ID] : MAX(
-    7 - { FIXED [Environment code],[Casino ID],[Game Provider] :
-          COUNTD(IF [Date Only] >= [Date Start _ 7] THEN [Date _ Have Traffic] END) } ) }
+Provider Gap = [Provider Avg Daily Wager] * [Casino Provider ZERO traffic days]
+```
 
-Casino has stopped provider = { FIXED [Environment code],[Casino ID] :
-    MAX(IF [Provider have-traffic days] > 0
+"At its normal rate, what did the silent days cost?" Bounded: at most 7 days of the provider's own
+normal.
+
+## 6. One rule, four places
+
+The rule: **zero days ≥ 1 AND gap ≥ `Min potential wager per provider`**. It appears in four fields
+because Tableau needs it as a filter, a number, a color and a total — but it is the same rule, so
+the row total always equals the sum of the colored cells.
+
+```
+-- entry filter (dimension filter = True)
+Has no-traffic provider this week =
+  { FIXED [Environment code], [Casino ID] :
+      MAX( IF [Grouping Set Level] = "casino-provider"
            AND [Casino Provider ZERO traffic days] >= 1
-        THEN 1 ELSE 0 END) } = 1
+           AND [Provider Gap] >= [Min potential wager per provider]
+           THEN 1 ELSE 0 END ) } = 1
 
-less than threshold filter = [Total wager (50d)] < [Cleanup threshold]      // parameter
+-- cell number
+Missing this week =
+  IF [Casino Provider ZERO traffic days] >= 1
+     AND [Provider Gap] >= [Min potential wager per provider]
+  THEN [Provider Gap] END
+
+-- cell color ('' is mapped to white)
+No traffic severity =
+  IF IFNULL([Provider Gap], 0) < [Min potential wager per provider] THEN ''
+  ELSEIF [Casino Provider ZERO traffic days] = 7 THEN '7 days no traffic'
+  ELSEIF [Casino Provider ZERO traffic days] = 6 THEN '6 days no traffic'
+  ...
+  ELSEIF [Casino Provider ZERO traffic days] = 1 THEN '1 day no traffic'
+  ELSE '' END
+
+-- row total (Rows shelf, sort key)
+Potential Wager =
+  { FIXED [Environment code], [Casino ID] :
+      SUM( { FIXED [Environment code], [Casino ID], [Game Provider] :
+               MAX( IF [Grouping Set Level] = "casino-provider"
+                    AND [Casino Provider ZERO traffic days] >= 1
+                    AND [Provider Gap] >= [Min potential wager per provider]
+                    THEN [Provider Gap] END ) } ) }
 ```
 
-`Casino Provider Filter` is a **nested FIXED LOD**: the inner expression computes zero-days per
-provider, the outer takes the worst one per casino. This is what lets a casino-level table filter
-on a provider-level condition without changing the grain of the view.
+The nested FIXED in `Potential Wager`: inner one collapses each provider's day rows to one value,
+outer one adds the providers up.
 
-`Casino has stopped provider` is the same idea with the never-live providers excluded, and it is
-the correct routing test for table 4 — see the note at the end.
+## 7. Parameter
 
-Routing logic:
+`Min potential wager per provider` — integer, default **1,000**. Used in the four fields above and
+in the header text, so one change updates the rule and its explanation together. Why 1,000:
+`design-decisions.md` §7.
 
-| Table | Condition |
-|---|---|
-| ① Never live | `Casino no traffic filter = TRUE` |
-| ② Underperforming | not ①, and `less than threshold filter = TRUE` |
-| ③ Casino dark this week | not ①, not ②, and `Zero Traffic Days >= 1` |
-| ④ Provider gap | not ①, not ②, `Zero Traffic Days = 0`, and `Casino has stopped provider` |
+## 8. 50-day list
 
-Because ③ requires at least one casino-wide zero day and ④ requires none, the two cannot both
-match. ① and ② are subtractive. No casino can appear twice.
+```
+Casino Last Traffic Day  = { FIXED [Environment code], [Casino ID] : MAX([Date _ Have Traffic]) }
+Casino no traffic filter = ISNULL([Casino Last Traffic Day])
+Casino Go Live Date      = { FIXED [Environment code], [Casino ID] : MIN([Go Live Date]) }
+```
+
+On the list = no traffic day at all in the window. Go-live date tells "long dead" from "not started".
 
 ---
 
-## 6. Ranking
+## Things that break silently
 
-```
-Potential Wager = { FIXED [Environment code],[Casino ID] :
-    SUM(IF [Provider have-traffic days] > 0 AND [Date Only] >= [Date Start _ 50]
-        THEN [Wager Eur] / [Provider have-traffic days] * [Casino Provider ZERO traffic days]
-        END) }
-
-Casino €/day when running = { FIXED [Environment code],[Casino ID] :
-    SUM(IF NOT ISNULL([Provider last traffic day]) AND [Date Only] >= [Date Start _ 50]
-        THEN [Wager Eur] / [Provider have-traffic days] END) }
-```
-
-`Wager / have-traffic days` is the provider's average daily wager **on the days it was actually
-running** — dead days do not dilute it, so it measures the size of the line rather than its recent
-uptime. Multiplying by this week's zero-traffic days estimates what that stoppage cost, and summing
-across providers gives a per-casino figure the table can sort on.
-
-**Why this is bounded to the week rather than cumulative.** `Casino Provider ZERO traffic days` can
-only be 0–7, so the multiplier is bounded by construction. An unbounded version — average daily
-wager × days-since-last-traffic — ranks a small line down for three weeks above a large line that
-broke yesterday, which inverts the order you actually want: the fresh break is the recoverable one.
-The bound is what keeps the list sorted by actionability instead of by accumulated regret.
-
-The `Provider have-traffic days > 0` guard is load-bearing. Without it, a provider that never
-carried traffic has a zero denominator and contributes either nothing or an error depending on the
-path — and a never-live line should not be able to claim it "missed" revenue it never earned.
-
----
-
-## 7. Display states
-
-```
-Cell status = IF [Provider have-traffic days] = 0 THEN 'Never used (50d)'
-              ELSE STR([Casino Provider ZERO traffic days]) END
-
-Day status  = IF [Provider have-traffic days] = 0 THEN 'Never used (50d)'
-              ELSE [Traffic Flag] END
-
-Cell label  = IF [Provider have-traffic days] = 0 THEN '–'
-              ELSEIF [Casino Provider ZERO traffic days] = 0 THEN ''
-              ELSE STR([Casino Provider ZERO traffic days]) END
-
-Never-used providers = { FIXED [Environment code],[Casino ID] :
-                         COUNTD(IF [Provider have-traffic days] = 0 THEN [Game Provider] END) }
-```
-
-**Why a string rather than a colour rule.** The colour encoding is a discrete field, so returning
-`'Never used (50d)'` as a *member* lets it take its own grey swatch alongside the 0–7 gradient,
-and the legend then carries the explanation in plain words — which matters because the legend is
-part of the emailed image. A continuous colour field would have rendered these as nulls, which is
-both untypable and unlabelled.
-
-**Why grey rather than hidden.** Removing them entirely would hide a genuinely broken line if that
-provider ever did go live, and it would flatten the diagnostic contrast that makes a row readable:
-four green cells and one red says "provider problem"; five red says "the casino stopped". Greying
-keeps both the information and the contrast while removing the visual urgency — the loudest thing
-on the page should not be the most meaningless.
-
----
-
-## 8. Access control
-
-```
-Assigned to KAM = TRUE        // demo build
-Team scope      = TRUE        // demo build
-```
-
-In the internal build these are row-level security predicates comparing the signed-in user against
-the account owner, applied as **context filters** so each manager sees only their own portfolio.
-They are stubbed to `TRUE` in this public version, both because there is no signed-in user on
-Tableau Public and because the original expressions contained real account identifiers.
-
-Note the interaction with section 1: these are context filters, so they *do* run before the FIXED
-LODs. That is intentional and correct — a manager's baselines should be computed within their own
-portfolio. It is also the reason the ordering rule matters enough to be worth stating twice.
+- **Never put the 7-day filter in context.** Context filters run before FIXED LODs; a 7-day context
+  filter collapses every baseline to this week. No error, wrong numbers.
+- **Row-level security *is* a context filter**, on purpose: each manager's baselines are computed
+  within their own portfolio. Stubbed to `TRUE` in this public copy.
+- **`Grouping Set Level` is a normal filter**, so FIXED LODs ignore it — that is why each LOD
+  carries its own `= "casino-provider"` guard.
+- **Aggregating a FIXED field with `SUM`** on a shelf multiplies it by the row count. Use `MIN`,
+  `MAX` or `ATTR`.
+- **The color map lives in the datasource**, not the worksheet. A worksheet-level palette is
+  ignored.
