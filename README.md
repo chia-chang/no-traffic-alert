@@ -57,7 +57,7 @@ which action, and did neither.
 ## The page that shipped (`1. Final`)
 
 <p align="center">
-  <img src="https://github.com/chia-chang/no-traffic-alert/blob/main/images/1.%20Final/1.%20Final%20No%20Traffic%20Alert.png" width="780"/>
+  <img src="https://github.com/chia-chang/no-traffic-alert/blob/main/images/1.%20Final/1.%20Final%20No%20Traffic%20Alert.png" width="860"/>
 </p>
 
 ### **No traffic 50 days.**
@@ -77,7 +77,7 @@ Row total ("Potential Wager") = the sum of the colored cells, and the table is s
 "No traffic entire casino" = how many days the *whole* casino was dark. Blank means nothing to do.
 
 <p align="center">
-  <img src="https://github.com/chia-chang/no-traffic-alert/blob/main/images/how-to-read.png" width="780"/>
+  <img src="https://github.com/chia-chang/no-traffic-alert/blob/main/images/how-to-read.png" width="860"/>
 </p>
 
 ---
