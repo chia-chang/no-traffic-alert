@@ -8,7 +8,7 @@ additional set of casino-level rows distinguished by `Grouping Set Level`.
 
 ---
 
-## 1 · The window
+## 1. The window
 
 Everything downstream hangs off one field, and it is data-driven rather than clock-driven.
 
@@ -41,7 +41,7 @@ Date Filter _ 7 days = [Date Only] >= [Date Start _ 7]
 
 ---
 
-## 2 · Turning a flag into a date
+## 2. Turning a flag into a date
 
 ```
 Date _ Have Traffic = IF [Traffic Flag] = 'Have Traffic' THEN [Date Only] END
@@ -56,7 +56,7 @@ never-live and stopped-yesterday are different questions and should not both be 
 
 ---
 
-## 3 · Casino level
+## 3. Casino level
 
 ```
 Casino Last Traffic Day = { FIXED [Environment code],[Casino ID] : MAX([Date _ Have Traffic]) }
@@ -91,7 +91,7 @@ wrong one.
 
 ---
 
-## 4 · Provider level
+## 4. Provider level
 
 ```
 Provider last traffic day = { FIXED [Environment code],[Casino ID],[Game Provider] :
@@ -114,14 +114,11 @@ rather than a list of provider names: one provider had been enabled in bulk acro
 client base and never went live, and hard-coding its name would have been a rule that broke
 silently the next time somebody did the same thing with a different provider.
 
-> ⚠️ **Aggregating a FIXED LOD on a shelf.** These are constant within their own grain, so putting
-> one on Rows with the default `SUM` multiplies it by the number of underlying records — a
-> days-since value of 30 renders as 11,370. Use `MIN`, `MAX` or `ATTR`. The symptom is a number
-> that is suspiciously close to a round multiple of the true one.
+⚠️ **Aggregating a FIXED LOD on a shelf.** These are constant within their own grain, so putting one on Rows with the default `SUM` multiplies it by the number of underlying records — a days-since value of 30 renders as 11,370. Use `MIN`, `MAX` or `ATTR`. The symptom is a number that is suspiciously close to a round multiple of the true one.
 
 ---
 
-## 5 · Routing
+## 5. Routing
 
 The four tables are mutually exclusive, and the exclusivity is enforced here rather than by
 convention.
@@ -160,7 +157,7 @@ match. ① and ② are subtractive. No casino can appear twice.
 
 ---
 
-## 6 · Ranking
+## 6. Ranking
 
 ```
 Potential Wager = { FIXED [Environment code],[Casino ID] :
@@ -190,7 +187,7 @@ path — and a never-live line should not be able to claim it "missed" revenue i
 
 ---
 
-## 7 · Display states
+## 7. Display states
 
 ```
 Cell status = IF [Provider have-traffic days] = 0 THEN 'Never used (50d)'
@@ -221,7 +218,7 @@ on the page should not be the most meaningless.
 
 ---
 
-## 8 · Access control
+## 8. Access control
 
 ```
 Assigned to KAM = TRUE        // demo build
