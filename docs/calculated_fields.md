@@ -1,11 +1,8 @@
 # Calculated fields
 
-The fields behind `1. Final`, in the order they build on each other. One line of "why" each; the
-formulas are exactly as in the workbook.
+The fields behind `1. Final`, in the order they build on each other. One line of "why" each; the formulas are exactly as in the workbook.
 
-Source grain: **environment × casino × provider × day**. The table also carries casino-level rows,
-marked by `Grouping Set Level`, so every FIXED expression guards on
-`[Grouping Set Level] = "casino-provider"` to avoid counting them twice.
+Source grain: **environment × casino × provider × day**. The table also carries casino-level rows, marked by `Grouping Set Level`, so every FIXED expression guards on `[Grouping Set Level] = "casino-provider"` to avoid counting them twice.
 
 ---
 
@@ -17,8 +14,7 @@ Date Start _ 7  = DATE(DATEADD('day',  -6, [Report Day]))    -- this week starts
 Date Start _ 50 = DATE(DATEADD('day', -49, [Report Day]))    -- baseline starts here
 ```
 
-Why `MAX(date)` and not `TODAY()`: data lands hours after midnight. Anchoring to the clock would
-show an empty last day as a wave of false alerts every morning.
+Why `MAX(date)` and not `TODAY()`: data lands hours after midnight. Anchoring to the clock would show an empty last day as a wave of false alerts everyday.
 
 - **Baseline** = `Date Start _ 50` to the day before `Date Start _ 7` (43 days)
 - **This week** = `Date Start _ 7` to `Report Day` (7 days)
@@ -29,8 +25,7 @@ show an empty last day as a wave of false alerts every morning.
 Date _ Have Traffic = IF [Traffic Flag] = 'Have Traffic' THEN [Date Only] END
 ```
 
-A nullable date lets `COUNTD` count "days with traffic" with no conditional aggregation. Never
-had traffic → `NULL`, not `0`.
+A nullable date lets `COUNTD` count "days with traffic" with no conditional aggregation. Never had traffic → `NULL`, not `0`.
 
 ## 3. Zero-traffic days this week
 
@@ -61,9 +56,7 @@ Provider Avg Daily Wager =
               THEN [Date _ Have Traffic] END ) }
 ```
 
-Baseline wager ÷ baseline days **with traffic**. Silent days do not dilute it, so a stopped casino
-keeps its real rate and a new casino is measured from day one. No baseline traffic → divide by zero
-→ `NULL` → never enters the gates below. The tooltip shows how many days the average rests on.
+Baseline wager ÷ baseline days **with traffic**. Silent days do not dilute it, so a stopped casino keeps its real rate and a new casino is measured from day one. No baseline traffic → divide by zero → `NULL` → never enters the gates below. The tooltip shows how many days the average rests on.
 
 ## 5. Potential
 
@@ -71,14 +64,11 @@ keeps its real rate and a new casino is measured from day one. No baseline traff
 Provider Gap = [Provider Avg Daily Wager] * [Casino Provider ZERO traffic days]
 ```
 
-"At its normal rate, what did the silent days cost?" Bounded: at most 7 days of the provider's own
-normal.
+"At its normal rate, what did the silent days cost?" Bounded: at most 7 days of the provider's own normal.
 
 ## 6. One rule, four places
 
-The rule: **zero days ≥ 1 AND gap ≥ `Min potential wager per provider`**. It appears in four fields
-because Tableau needs it as a filter, a number, a color and a total — but it is the same rule, so
-the row total always equals the sum of the colored cells.
+The rule: **zero days ≥ 1 AND gap ≥ `Min potential wager per provider`**. It appears in four fields because Tableau needs it as a filter, a number, a color and a total, but it is the same rule, so the row total always equals the sum of the colored cells.
 
 ```
 -- entry filter (dimension filter = True)
@@ -119,9 +109,7 @@ outer one adds the providers up.
 
 ## 7. Parameter
 
-`Min potential wager per provider` — integer, default **1,000**. Used in the four fields above and
-in the header text, so one change updates the rule and its explanation together. Why 1,000:
-`design-decisions.md` §7.
+`Min potential wager per provider` — integer, default **1,000**. Used in the four fields above and in the header text, so one change updates the rule and its explanation together. Why 1,000: `design-decisions.md`.
 
 ## 8. 50-day list
 
@@ -137,13 +125,8 @@ On the list = no traffic day at all in the window. Go-live date tells "long dead
 
 ## Things that break silently
 
-- **Never put the 7-day filter in context.** Context filters run before FIXED LODs; a 7-day context
-  filter collapses every baseline to this week. No error, wrong numbers.
-- **Row-level security *is* a context filter**, on purpose: each manager's baselines are computed
-  within their own portfolio. Stubbed to `TRUE` in this public copy.
-- **`Grouping Set Level` is a normal filter**, so FIXED LODs ignore it — that is why each LOD
-  carries its own `= "casino-provider"` guard.
-- **Aggregating a FIXED field with `SUM`** on a shelf multiplies it by the row count. Use `MIN`,
-  `MAX` or `ATTR`.
-- **The color map lives in the datasource**, not the worksheet. A worksheet-level palette is
-  ignored.
+- **Never put the 7-day filter in context.** Context filters run before FIXED LODs. a 7-day context filter collapses every baseline to this week. No error, wrong numbers.
+- **Row-level security *is* a context filter**, on purpose: each manager's baselines are computed within their own portfolio. Stubbed to `TRUE` in this public copy.
+- **`Grouping Set Level` is a normal filter**, so FIXED LODs ignore it — that is why each LOD carries its own `= "casino-provider"` guard.
+- **Aggregating a FIXED field with `SUM`** on a shelf multiplies it by the row count. Use `MIN`, `MAX` or `ATTR`.
+- **The color map lives in the datasource**, not the worksheet. A worksheet-level palette is ignored.
