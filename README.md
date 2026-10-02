@@ -29,7 +29,6 @@ This is the original dashboard.
   <img src="https://github.com/chia-chang/no-traffic-alert/blob/main/images/3.%20Original/ZERO%20Traffic%20Alert%20(original).png" width="780"/>
 </p>
 
-!ZERO Traffic Alert (original).png.png)
 
 ## What the users said
 
@@ -57,7 +56,9 @@ which action, and did neither.
 
 ## The page that shipped (`1. Final`)
 
-!How to read it
+<p align="center">
+  <img src="https://github.com/chia-chang/no-traffic-alert/blob/main/images/1.%20Final/1.%20Final%20No%20Traffic%20Alert.png" width="780"/>
+</p>
 
 ### **No traffic 50 days.**
 
@@ -74,6 +75,10 @@ Cell number = what those silent days cost at the provider's own normal daily rat
 Row total ("Potential Wager") = the sum of the colored cells, and the table is sorted by it. 
 
 "No traffic entire casino" = how many days the *whole* casino was dark. Blank means nothing to do.
+
+<p align="center">
+  <img src="https://github.com/chia-chang/no-traffic-alert/blob/main/images/how-to-read.png" width="780"/>
+</p>
 
 ---
 
