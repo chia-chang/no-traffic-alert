@@ -25,6 +25,10 @@ account managers (KAMs) receiving it had mostly stopped reading it. I set out to
 
 This is the original dashboard.
 
+<p align="center">
+  <img src="https://github.com/chia-chang/no-traffic-alert/blob/main/images/3.%20Original/ZERO%20Traffic%20Alert%20(original).png" width="780"/>
+</p>
+
 !ZERO Traffic Alert (original).png.png)
 
 ## What the users said
