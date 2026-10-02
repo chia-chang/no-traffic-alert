@@ -149,7 +149,7 @@ For the smallest providers, data shows that the normal week to week swing is abo
 | `data/traffic_monitor_synthetic.csv` | 39,600 rows · 130 casinos · 8 providers · 50 days |
 | `docs/user-guide.md` | A thorough guide for the account managers |
 | `docs/design-decisions.md` | Why each choice was made, what was rejected, the threshold analysis |
-| `docs/calculated-fields.md` | Every calculated field on the shipped page, with Tableau order-of-operations notes |
+| [`docs/calculated-fields.md`](https://github.com/chia-chang/no-traffic-alert/blob/main/docs/calculated_fields.md) | Every calculated field on the shipped page, with Tableau order-of-operations notes |
 
 ## Technologies
 
