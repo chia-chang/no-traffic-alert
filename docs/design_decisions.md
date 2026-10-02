@@ -1,99 +1,73 @@
 # Design decisions
 
-The dashboard is a short list of judgement calls. This file records each one, the alternative that was considered, and the evidence. Figures come from four weeks of production data (anonymized here) and
-from the synthetic dataset in this repository where noted.
+Each section is one choice on the shipped page (`1. Final`): what the page does, and why. Things I tried and dropped are also included at the end, so the main text describes the page as it is. Figures come from four weeks of production data (anonymized) and, where noted, from the synthetic dataset in this repository.
 
-## 1. One question per page
+---
 
-*Which casinos had providers with no traffic this week, what did it cost, who should call.*
-Everything on the page serves that sentence. Two other questions were explicitly pushed out:
+## 1. Two actions in one page
 
-- **Declining but still running** (a big client 30% down, no zero days). Built, then removed: it doubled the color legend and made the dominant provider light up on nearly every row. Different question,
-  different page.
-- **Enabled but barely used** (a provider live at a casino but doing a few euros a week). That is a sales conversation, not an alert. The cleanup list covers it at 50 days.
+The page exists for two things a KAM can actually do:
 
-## 1b. Nothing may be removed, so everything must be ranked
+1. **Clean up** — casinos with no traffic at all for 50 days: close the line and stop maintaining settings for it.
+2. **Call** — casinos where at least a provider went silent this week: find out why (lobby position, promotion, integration problem, switched off) before more of the week's wager is gone.
 
-The first attempt at making the page readable was to filter rows out. The team refused: each row had
-a reason to exist for someone. The constraint forced the design that shipped — if the population
-cannot shrink, the page needs a single number per row that orders it (Potential Wager), a threshold
-that is stated rather than hidden, and a layout that reads top-down so a reader can stop at any point
-and have seen the most important part.
+That is the whole page: one table for this week, one cleanup list for 50 days. 
+A casino that is own 30% but never hit zero, or a provider doing a few euros a week, is not one of these two actions and is not on the page. Earlier versions tried to cover those too. See the appendix for more details.
 
-## 2. Row = casino, cell = provider
+## 2. Making content more digestable by not bombing them with too much information
 
-KAMs act per casino — one phone call — so a row is a casino. The provider grid inside the row tells them
-what to say on that call. The first attempt (four routed tables, one per situation; `2 · Rejected` in the
-workbook) was turned down by the business as "too much"; the second collapsed it to this single grid.
+- **Adding potential wager < €1,000.** A provider appears only if its silent days cost at least €1,000. That does remove rows — but by a single number that is printed in the header, backed by data, and adjustable as a parameter, not by someone's opinion of what matters. Lines it hides are not gone for good: if they stay silent they surface on the 50-day list.
+- **Everything that passes is ranked.** Each casino gets one number (Potential Wager), the table is sorted by it, and a reader can stop at any point having seen the most important rows first.
 
-## 3. Color encodes one variable
+## 3. Row = casino, cell = provider, two tables
 
-| Version | Colors | Reviewer reaction |
-| --- | --- | --- |
-| 1 | red stopped · yellow down · green normal · gray never used | "I can't tell what each means" |
-| 2 | 3-step ramp for days silent + a pale tint for "down but running" | "What are the two extra colors?" |
-| shipped | 7-step single hue = days silent; blank = nothing to do | — |
+A KAM acts around casinos, so a row is a casino, and the provider grid inside the row is what to say on that call. 
+The second table (*No traffic 50 days*) is the same question stretched to the whole window: lines nobody uses any more, with go-live dates so "long dead" can be told from "not started yet".
 
-Green and gray were removed on principle: every color in an alert should mean *do something*. "Nothing
-to do" is white, whatever the reason — ran every day, not set up here, under the threshold, no baseline.
-The guide spells those out once so nobody asks what the blank means.
+## 4. Color tells how long of a problem this is, and blank means nothing act on at the moment
 
-## 4. Whole-casino silence gets its own column
+Cell color is a single 7-step hue for one variable: days without traffic this week. 
+Every reason for blank: ran every day, not set up here, under the threshold, no baseline.
 
-"No traffic entire casino = N days" is computed at casino level (a day when all providers together had
-zero wager). It does not depend on how many providers the casino has, and it is not inferred from the
-row's colors — a row can be fully colored because each provider had its own silent days without the
-casino ever being fully dark. The column removes that ambiguity instead of asking the reader to judge it.
+## 5. "No traffic entire casino" is its own column
 
-## 5. Potential Wager = rate × silent days, baseline over days with traffic
+A row can be fully colored because each provider had its own silent days without the casino ever being dark as a whole. Whether *all* providers were silent on the same day is a different fact, so it is computed at casino level and shown as a number rather than left for the reader to infer from the colors.
 
-Shipped: for each provider with ≥ 1 zero-traffic day this week,
-*average daily wager over the days it had traffic in the 43 days before this week × zero-traffic days
-this week*, summed per casino.
+## 6. Potential Wager = rate × silent days
 
-Three definitions were tried.
+For each provider with at least one zero-traffic day this week:
 
-| | Baseline | Potential | Problem |
-| --- | --- | --- | --- |
-| Original | 50-day average, silent days included | avg × zero days | a casino quiet for weeks has a baseline diluted by its own silence |
-| Iteration | average of the 4 full weeks before this week | normal week − this week (actual gap) | same dilution, one week slower; and a 2-week-dead casino's number shrinks every week until it vanishes — exactly when it should stay loud |
-| **Shipped** | **43 days, days with traffic only** | **avg daily × zero days** | a line that ran on 2 days out of 43 is measured on those 2 |
+> average daily wager **over the days it had traffic** in the 43 days before this week
+> × zero-traffic days this week
 
-The actual-gap version had real merits — the number is what the client would recognize, and on
-production data its median ratio to the rate × days estimate was 1.00 — but the business asked for the
-rate × days form specifically because of stopped casinos, and because a casino live for three days
-should be measured on those three days, not on a 43-day average that is mostly zeros.
+summed per casino. It answers "at the rate this provider normally runs, what did the silent days
+cost?", and it is bounded: at most seven days of the provider's own normal.
 
-**Guard considered and rejected.** The known weakness (two traffic days × seven silent days = a number
-the line never made) could be closed with "at least 14 baseline days with traffic". It was rejected on
-purpose: it would also hide newly live casinos, which are the ones most likely to have an integration
-problem in their first weeks. Instead the tooltip shows how many days the average rests on, and the
-guide says so.
+**Why the baseline only counts days with traffic.** A casino that stopped two weeks ago should still
+be measured at the rate it ran at, not at an average diluted by its own silence — otherwise its
+number shrinks every week, exactly when it should stay loud. A casino live for three days should be
+measured on those three days, not on a 43-day average that is mostly zeros.
 
-Both the rate × days potential and the "row total = sum of cells" property come for free from using
-the same condition in all four fields; see `calculated-fields.md` §6.
+**The cost, disclosed rather than filtered.** A provider that ran on two days out of 43 is measured
+on those two, and can show a number it never actually made in a week. A minimum-days guard would fix
+that but would also hide newly live casinos — the ones most likely to have an integration problem.
+So the tooltip shows how many days the average rests on, and the guide says so.
 
-## 6. Window = 43 days before this week
+**Why the row total equals the sum of its cells.** The same condition (zero days ≥ 1 and gap ≥
+threshold) is used in the entry filter, the cell number, the cell color and the row total. See
+`calculated-fields.md` §6.
 
-The source holds 50 days. This week takes 7; the rest is baseline. Not 4 fixed weeks (see §5), not
-30 days (weekday mix drifts and the last 13 days are wasted). Because only days with traffic are
-averaged, weekday alignment matters less than it did for the fixed-week version.
+## 7. One threshold: potential ≥ €1,000
 
-Known limit: a casino live for under a week has a baseline of a few days. Disclosed, not filtered.
+### 7.1 Why one parameter
 
-## 7. The threshold — one parameter, €1,000
-
-### 7.1 Why one and not two
-
-An earlier version had two: *provider usually ≥ €1,000/week* (size) and *missing ≥ €1,000* (amount).
-With potential = avg daily × zero days, and zero days ≤ 7, potential ≥ €1,000 implies
-avg daily × 7 ≥ €1,000, which is the size test. The size filter could never remove anything the amount
-filter had not already removed. It was deleted; one parameter is easier to explain and impossible to
-set inconsistently.
+A size test ("provider usually does ≥ €1,000/week") would be redundant: potential ≥ €1,000 already
+implies average daily × 7 ≥ €1,000. One parameter is easier to explain and cannot be set
+inconsistently.
 
 ### 7.2 Why €1,000
 
-Two things the data said about the same number.
+Two things the data says about the same number.
 
 **Below €1,000/week, silence is normal.** Share of providers with at least one full zero-traffic day in
 four normal weeks (20 Aug – 16 Sep), by size:
@@ -109,11 +83,11 @@ four normal weeks (20 Aug – 16 Sep), by size:
 | €10,000–50,000 | 314 | 15.9% | 1.1 |
 | €50,000+ | 792 | 2–9% | < 1 |
 
-Below €1,000 silence is the majority behavior; above it, the minority, falling with size. The 552 lines
-under €1,000 are 27% of lines and 0.001% of wager.
+Below €1,000 silence is the majority behavior; above it, the minority, falling with size. The 552
+lines under €1,000 are 27% of lines and 0.001% of wager.
 
-**Below €1,000, a gap is within the ordinary swing.** Standard deviation of each provider's four normal
-weekly totals, median by size:
+**Below €1,000, a gap is within the ordinary swing.** Standard deviation of each provider's four
+normal weekly totals, median by size:
 
 | Normal week wager | Weekly SD | as % of week |
 | --- | --- | --- |
@@ -125,55 +99,64 @@ weekly totals, median by size:
 
 €1,000 clears one SD for the smallest providers that can appear on the table. Because a provider can
 show at most seven days of its own normal, the same floor is strict for small providers (dark most of
-the week) and sensitive for large ones (one day is enough).
+the week before they show) and sensitive for large ones (one day is enough).
 
-**Alternatives.** €500 (the first guess) is below the natural swing of every provider on the table.
-€2,000 was used for a while as the amount threshold; it was fine on the data but harder to defend as a
-single number once the size test disappeared, and it hid a handful of €2,000–3,000/week casinos going
-dark for most of a week. €10,000 (where silence becomes exceptional, 16%) was rejected: it would drop
-casinos whose €5,000-a-week providers went dark for 2–3 days — small, real, and the kind of case a KAM
-wants.
+### 7.3 One number for everyone
 
-### 7.3 One threshold for everyone?
+Checked by provider and by casino size: every provider shows the same shape (≤€1k: 86–100% with
+zero days; €1k–10k: 31–62%; ≥€10k: 0–13%), and among €1k–10k providers the zero-day rate is 35–50%
+whether the casino is tiny or huge. Silence is a property of the provider's size, not of the casino
+or the brand.
 
-Checked by provider and by casino size. Every provider shows the same shape (≤€1k: 86–100% with zero
-days; €1k–10k: 31–62%; ≥€10k: 0–13%). Among €1k–10k providers, the zero-day rate is 35–50% whether the
-casino is tiny or huge. Silence is a property of the provider's size, not of the casino or the brand, so
-one number is justified.
+### 7.4 What it costs
 
-### 7.4 What the threshold costs
-
-Production week, casinos / cells on the page:
-
-| Setting | Casinos | Cells |
+| Threshold | Casinos | Cells |
 | --- | --- | --- |
 | none | 252 | 509 |
-| €1,000 | 107 | 174 |
+| **€1,000** | **107** | **174** |
 | €2,000 | 83 | 120 |
 | €10,000 | 49 | 66 |
 
-Synthetic dataset (this repository): none → 63 / 167; **€1,000 → 30 / 53**.
+(Production week. On the synthetic dataset: none → 63 / 167; €1,000 → 30 / 53.)
 
-Any provider at €10,000/week or more (99.98% of wager) appears after a single zero day. What €1,000
-can hide is a very small casino losing under €1,000 in a week.
+Any provider at €10,000/week or more — 99.98% of wager — appears after a single zero day. What
+€1,000 can hide is a very small casino losing under €1,000 in a week.
 
-### 7.5 Honesty about the sample
+### 7.5 The sample
 
-Four weeks is one window. The cross-section is large (2,049 lines), so the *shape* is robust; the
-*time coverage* is thin, so seasonality is untested. The guide says "in the weeks we measured", the
-analysis is re-run quarterly, and the number is a parameter.
+Four weeks is one window. The cross-section is large (2,049 lines), so the shape is robust; the time
+coverage is thin, so seasonality is untested. The guide says "in the weeks we measured", the analysis
+is re-run quarterly, and the number is a parameter so it can move without touching a formula.
 
-## 8. Report day
+## 8. Report day and windows
 
-`MAX(date)` in the source, not `TODAY()`. The pipeline lands a day's data some hours after midnight;
-anchoring to the clock would make every morning's view describe a window whose last day is empty.
-Verified on production that the last day is complete before the weekly send; if the refresh ever moves
-earlier, this must become the last *full* day or every provider gains a false zero day.
+Report day = `MAX(date)` in the source, not `TODAY()`: data lands hours after midnight, and a
+clock-anchored window would show an empty last day as a wave of false alerts every morning. This
+week = 7 days ending on the report day; baseline = the 43 days before that (the source holds 50).
+The dates are printed on the page. If the refresh ever moves earlier than the last full day, the
+report day must become the last *complete* day or every provider gains a false zero day.
 
-## 9. Email, not dashboard
+## 9. Built for email
 
-The alert goes out as a Tableau subscription image. That rules out legends that need hovering,
-filters, and anything that only makes sense interactively. It is why the header states the windows and
-the rule in one sentence, why color is a single ramp that reads without a legend, and why the
-analyst-level detail (baseline days, average, zero days) lives in the tooltip on the server version and
-nowhere else.
+The alert is a weekly Tableau subscription image, sent only when the list is not empty. That rules
+out anything that needs hovering or clicking: the header states the window and the rule in one
+sentence, the color ramp reads without a legend, and analyst-level detail (baseline days, average,
+zero days) lives in the tooltip on the interactive version and nowhere else.
+
+---
+
+## Appendix — tried and dropped
+
+| Tried | Dropped because |
+| --- | --- |
+| Filtering out rows by judgment ("nobody acts on these") | Team refused: every row had a reason to exist. Replaced by one printed rule plus ranking (§2). |
+| Four routed tables — never live / underperforming (under €500 in 50 days) / casino dark / provider stopped (`2. Rejected`) | "Too much stuff"; answered the analyst's question (*what kinds of silence exist?*), not the KAM's (*who do I call?*). |
+| Four-color legend (red stopped · yellow down · green normal · gray never used) | Reviewers could not say what each color meant. |
+| Also flagging providers 30% below normal that still ran every day (a step between `2. Rejected` and `1. Final`) | Doubled the legend, lit up the dominant provider on nearly every row. A traffic-drop alert is a separate page. |
+| Baseline = 50-day average including silent days (original) | Diluted by the casino's own silence. |
+| Baseline = 4 full weeks; potential = normal week − this week (actual gap) | Verifiable against client numbers and matched rate × days on median (ratio 1.00), but a stopped casino's number shrank every week. Business asked for rate × days. |
+| Minimum 14 baseline days with traffic | Would hide newly live casinos. Disclosed in tooltip instead. |
+| Two thresholds (size ≥ €1,000/week and amount ≥ €1,000) | Size test is implied by the amount test. |
+| Amount threshold €500 | Below the natural swing of every provider on the table — filters nothing. |
+| Amount threshold €2,000 | Fine on the data, but hid €2,000–3,000/week casinos dark most of a week. |
+| Threshold €10,000 | Drops €5,000/week providers dark 2–3 days — small, real, the case a KAM wants. |
