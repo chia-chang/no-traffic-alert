@@ -1,14 +1,10 @@
 # No Traffic Alert: redesigning an alert nobody read
 
-A weekly alert went out to every account manager on the team. Almost nobody acted on it.
-This is the story of finding out why, building a replacement, having it rejected as "too much",
-and building the one that shipped.
+This is one of the weekly alert went out to every account manager on the team. Almost nobody acted on it.
+This is the story of finding out why, building a replacement, and building the one that shipped.
 
-> **Note:** This is a recreation of internal work using synthetically generated data.
-No real companies, people, accounts or figures are included. The dataset is produced by
-`data/generate_synthetic_data.ipynb`, which reproduces the
-statistical *shape* of the original problem (heavy-tailed revenue, batch-enabled dead
-integrations, intermittent outages) without reproducing any of its content.
+> **Note:** This is a recreation of internal work using synthetically generated data. No real companies, people, accounts or figures are included. The dataset is produced by
+`data/generate_synthetic_data.ipynb`, which reproduces the statistical *shape* of the original problem (heavy-tailed revenue, batch-enabled dead integrations, intermittent outages) without reproducing any of its content.
 > 
 
 Three tabs: `1. Final`, `2. Rejected`, `3. Original`.
@@ -19,11 +15,9 @@ Three tabs: `1. Final`, `2. Rejected`, `3. Original`.
 
 Each client casino runs several game providers, and every provider on every casino should be producing traffic every day. When one stops, it could be a broken integration, a client-side change, or a line the client quietly turned off. Either way, somebody should find out why.
 
-An alert existed to catch exactly this. It listed every casino × provider with zero traffic in three
-overlapping blocks (`3. Original`). It had been running for a long time, and the
-account managers (KAMs) receiving it had mostly stopped reading it. I set out to find out whether it still fits how they actually work.
+An alert existed to catch exactly this. It listed every casino × provider with zero traffic in three overlapping blocks (`3. Original`). It had been running for a long time, and the account managers (KAMs) receiving it had mostly stopped reading it. I set out to find out whether it still fits how they actually work.
 
-This is the original dashboard.
+This is the original dashboard:
 
 <p align="center">
   <img src="https://github.com/chia-chang/no-traffic-alert/blob/main/images/3.%20Original/ZERO%20Traffic%20Alert%20(original).png" width="780"/>
