@@ -1,10 +1,9 @@
 # No Traffic Alert: redesigning an alert nobody read
 
-This is one of the weekly alert went out to every account manager on the team. Almost nobody acted on it.
-This is the story of finding out why, building a replacement, and building the one that shipped.
+This is one of the weekly alert went out to every account manager on the team. With it being live for more than 2 years, this one has less than 200 views and almost nobody acted on it.
+This is the story of finding out why, building a replacement, and optimizing it into something people can actually act on.
 
-> **Note:** This is a recreation of internal work using synthetically generated data. No real companies, people, accounts or figures are included. The dataset is produced by
-`data/generate_synthetic_data.ipynb`, which reproduces the statistical *shape* of the original problem (heavy-tailed revenue, batch-enabled dead integrations, intermittent outages) without reproducing any of its content.
+> **Note:** This is a recreation of internal work using synthetically generated data. No real companies, people, accounts or figures are included. The dataset is produced by `data/generate_synthetic_data.ipynb`, which reproduces the statistical *shape* of the original problem (heavy-tailed revenue, batch-enabled dead integrations, intermittent outages).
 > 
 
 Three tabs: `1. Final`, `2. Rejected`, `3. Original`.
@@ -26,7 +25,7 @@ This is the original dashboard:
 
 ## What the users said
 
-I interviewed KAMs separately, and surprisingly none of them used it as an alert. 
+I interviewed KAMs separately, and surprisingly none of them used it as an alert. Some of them used it as a clean up list, for the 
 
 One described his real workflow:
 
