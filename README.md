@@ -46,15 +46,14 @@ Another explained what would make him call the clients:
 
 So the dashboard has two jobs: 
 
-1. **close what is dead** (slow, quarterly)
-2. **call about what just went silent** (fast, this week). 
+1. **close what is dead** (quarterly, problems that have been sitting for a while)
+2. **call about what just went silent** (weekly, spot new issue timely before any potential loss continues). 
 
-The original mixed them in one list, so readers could not tell which rows asked for
-which action, and did neither.
+The original dashboard mixed them altogether and flooding them with clients the KAMs would not actually work on, so readers could not tell which rows asked for which action, and did neither.
 
 ---
 
-## The page that shipped (`1. Final`)
+## The final dashboard (`1. Final`)
 
 <p align="center">
   <img src="https://github.com/chia-chang/no-traffic-alert/blob/main/images/1.%20Final/1.%20Final%20No%20Traffic%20Alert.png" width="930"/>
@@ -62,7 +61,7 @@ which action, and did neither.
 
 ### **No traffic 50 days.**
 
-The cleanup list: casinos silent for the whole window, with their go-live date.
+The cleanup list: casinos silent for the whole window, with their go-live date, so they could actually identify if the casino has not traffic just because they were newly live or has actually been dead and haven't been contributing wager for a long time.
 
 ### **No traffic this week.**
 
@@ -74,11 +73,13 @@ Cell number = what those silent days cost at the provider's own normal daily rat
 
 Row total ("Potential Wager") = the sum of the colored cells, and the table is sorted by it. 
 
-"No traffic entire casino" = how many days the *whole* casino was dark. Blank means nothing to do.
+"No traffic entire casino" = how many days the *whole* casino was dark. Blank means nothing is worth attention as of now.
 
 <p align="center">
   <img src="https://github.com/chia-chang/no-traffic-alert/blob/main/images/how-to-read.png" width="930"/>
 </p>
+
+Note that the 1000 potential wager is decided based on statistics.
 
 ---
 
@@ -88,22 +89,21 @@ Row total ("Potential Wager") = the sum of the colored cells, and the table is s
 
 My first move was subtraction. The page was numbing because it showed everything, so I filtered out the rows I thought nobody acted on. 
 
-The team pushed back: every row on that page was there because someone had once needed it, and I was not allowed to take any of it away.
+Feedback: every row on that page was there because someone had once needed it, and I was not allowed to take any of it away.
 
-That constraint turned out to be the most useful thing anyone said during the project. If nothing
-can be removed, the only way to make a page readable is to **rank** it, so I decided to put a number on each row that says how much it matters, and let the reader stop wherever their time runs out. That number became Potential Wager, and everything else on the final page follows from it: the sort order, the threshold, the row total that equals the sum of its cells.
+If nothing can be removed, the only way to make a page readable is to **rank** it, so I decided to put a number on each row that says how much it matters, and let the reader stop wherever their time runs out. That number became Potential Wager, and everything else on the final page follows from it: the sort order, the threshold, the row total that equals the sum of its cells.
 
 ### Second Attempt:  Categorized casino issues(`2. Rejected`) → Refused
 
-I then split the page into four mutually exclusive tables: never live, underperforming, whole
-casino no traffic, at least one provider stopped. Each with its own action, plus a header stating
+I then split the page into four mutually exclusive tables: never live, under-performing, whole casino no traffic, at least one provider stopped. Each with its own action, plus a header stating
 every window and threshold. Structurally it was right, no casino appeared twice, and the cleanup
 population was separated from the incident population.
 
-It was reviewed and turned down. The feedback: *"too much stuff"*, *"a KAM should get it without
-reading the description"*.
+Feedback: *"too much stuff"*, *"a KAM should get it without reading the description"*.
 
-They were right. These four tables answered the analyst's question (*what kinds of silence exist?*), but did not help a KAM instantly know what to do next. I kept it in the workbook because the rejection is part of the work too.
+These worksheets were helpful in a more analytical way instead of helping a KAM instantly know what to do next.
+
+I kept all these in the workbook as rejection is always part of the work too.
 
 ---
 
