@@ -139,7 +139,7 @@ For the smallest providers, data shows that the normal week to week swing is abo
 | --- | --- |
 | `No_Traffic_Alert_portfolio_final.twbx` | Packaged workbook with the synthetic data embedded. Opens on `1. Final`; `2. Rejected` and `3. Original` are the other tabs. |
 | [`data/generate_synthetic_data.ipynb`](https://github.com/chia-chang/no-traffic-alert/blob/main/data/generate_synthetic_data.ipynb) | Generates the dataset (scenario-driven, seeded) and validates it in pandas. |
-| `data/traffic_monitor_synthetic.csv` | 39,600 rows · 130 casinos · 8 providers · 50 days |
+| [`data/traffic_monitor_synthetic.csv`](https://github.com/chia-chang/no-traffic-alert/blob/main/data/traffic_monitor_synthetic.csv) | 39,600 rows · 130 casinos · 8 providers · 50 days |
 | [`docs/user-guide.md`](https://github.com/chia-chang/no-traffic-alert/blob/main/docs/user_guide.md) | A thorough guide for the account managers |
 | [`docs/design-decisions.md`](https://github.com/chia-chang/no-traffic-alert/blob/main/docs/design_decisions.md) | Why each choice was made, what was rejected, the threshold analysis |
 | [`docs/calculated-fields.md`](https://github.com/chia-chang/no-traffic-alert/blob/main/docs/calculated_fields.md) | Every calculated field on the shipped page, with Tableau order-of-operations notes |
