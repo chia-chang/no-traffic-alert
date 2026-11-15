@@ -13,11 +13,11 @@ This is the story of why that was a structural problem rather than a design one 
 
 ## Overview
 
-The product is a B2B games platform. Each client casino runs several game providers, and every
-provider on every casino should be producing traffic every day. When one stops, somebody should
+The product is a B2B content platform. Each client runs several content providers, and every
+provider on every client should be producing traffic every day. When one stops, somebody should
 find out why — a broken integration, a client-side change, or a line the client quietly turned off.
 
-A daily email existed to catch exactly this. It listed every casino × provider combination with
+A daily email existed to catch exactly this. It listed every client × provider combination with
 zero traffic. It had been running for a long time, and the people receiving it had mostly stopped
 reading it.
 
@@ -68,13 +68,13 @@ seconds which of their accounts needed what.
 The redesign is a series of judgement calls. These are the ones that mattered, and why I went
 the way I did.
 
-**Why route casinos into mutually exclusive tables, rather than one ranked list**
+**Why route clients into mutually exclusive tables, rather than one ranked list**
 
-The original produced three overlapping blocks, and a casino could appear in more than one. That
+The original produced three overlapping blocks, and a client could appear in more than one. That
 sounds harmless, but it means a reader cannot tell what a row is asking of them: is this account
 dead, underperforming, or broken this morning? Those need three different responses — close the
-line, review the commercials, call the client today. Routing each casino into exactly one table
-turns "here is a list of problems" into "here is what to do about each one". Every casino now
+line, review the commercials, call the client today. Routing each client into exactly one table
+turns "here is a list of problems" into "here is what to do about each one". Every client now
 appears in exactly one of four tables, and the routing is enforced by the filter logic rather than
 by convention.
 
@@ -87,9 +87,9 @@ meant the incidents were buried under hundreds of provisioning leftovers. Splitt
 single biggest reduction in noise, because the never-live population is large and almost entirely
 static.
 
-**Why rank by wager missed *this week*, rather than by total lost revenue**
+**Why rank by volume missed *this week*, rather than by total lost revenue**
 
-The obvious ranking metric is cumulative: average daily wager × days down. It is also wrong for
+The obvious ranking metric is cumulative: average daily volume × days down. It is also wrong for
 this purpose. A small line down for three weeks accumulates more than a large line that broke
 yesterday — but the one that broke yesterday is the one you can still save. Bounding the estimate
 to the current week (zero-traffic days can only be 0–7) keeps the ranking ordered by
@@ -99,7 +99,7 @@ where it belongs.
 **Why the alert threshold came from list length, not from the data**
 
 The revenue cut-off separating "worth a call" from "worth ignoring" has no natural break point —
-daily wager spans five orders of magnitude and is close to log-uniform, so any cut looks arbitrary
+daily volume spans five orders of magnitude and is close to log-uniform, so any cut looks arbitrary
 from inside the distribution. I set it from the other end instead: an account manager can work
 through roughly three to five accounts a week, so the threshold is whatever produces that list
 length. It is also a number you can defend in a meeting — nobody agrees on €500, everybody agrees
@@ -114,7 +114,7 @@ ignore red. But removing it entirely would hide a genuinely broken line if that 
 go live, and hard-coding a provider name is a rule that silently rots the moment somebody enables a
 different one. Encoding the *condition* — "has never produced traffic inside the window" — as a
 distinct grey state is provider-agnostic, self-maintaining, and preserves the contrast that makes a
-row diagnosable: four green cells and one red means a provider problem; five red means the casino
+row diagnosable: four green cells and one red means a provider problem; five red means the client
 itself stopped.
 
 ---
@@ -124,9 +124,9 @@ itself stopped.
 | | Original | Redesign |
 |---|---|---|
 | Structure | 3 overlapping blocks | 4 mutually exclusive tables + a header that states the windows |
-| Can a casino appear twice? | Yes | No — enforced in the filter logic |
+| Can a client appear twice? | Yes | No — enforced in the filter logic |
 | Never-live vs stopped | Merged | Separated into different tables |
-| Ordering | Alphabetical | By estimated wager missed this week |
+| Ordering | Alphabetical | By estimated volume missed this week |
 | Dead integrations | Rendered as urgent red | Distinct grey state, provider-agnostic |
 | Thresholds | Hard-coded | Parameterised and shown in the header |
 | Cadence | Daily, fires even when empty | Weekly, suppressed when there is nothing to report |
@@ -138,7 +138,7 @@ itself stopped.
 ### Header — every window the page uses, stated once
 ![Header](images/00-header.png)
 
-The original never said out loud that one of its blocks silently required the casino to be
+The original never said out loud that one of its blocks silently required the client to be
 healthy overall. Readers had to infer the routing from which rows appeared where. Every window,
 threshold and definition is now printed at the top and driven by the same fields the tables use,
 so the page cannot describe a rule it isn't applying.
@@ -146,27 +146,27 @@ so the page cannot describe a rule it isn't applying.
 ### 1 — Never live in the window
 ![Never live](images/01-never-live.png)
 
-Casinos with no traffic at all across the whole 50-day window. The go-live date is shown next to
+Clients with no traffic at all across the whole 50-day window. The go-live date is shown next to
 each: an old date still at zero is a dead line to close; a recent one may simply not have started.
 **Action: does this line still need to exist?**
 
 ### 2 — Underperforming
 ![Underperforming](images/02-underperforming.png)
 
-Casinos that do produce traffic, but under the cleanup threshold in total across 50 days. These
+Clients that do produce traffic, but under the cleanup threshold in total across 50 days. These
 are commercially marginal rather than broken. **Action: is this worth keeping open?**
 
-### 3 — Whole casino went dark this week
-![Casino dark](images/03-casino-dark.png)
+### 3 — Whole client went dark this week
+![Client dark](images/03-client-dark.png)
 
-Casinos above the threshold where every provider stopped on the same day or days. Provider × day
+Clients above the threshold where every provider stopped on the same day or days. Provider × day
 grid, so the shape of the outage is visible — one bad day looks different from a slow fade.
 **Action: connection, client-side change, or planned?**
 
-### 4 — A provider stopped at an otherwise-healthy casino
+### 4 — A provider stopped at an otherwise-healthy client
 ![Provider gap](images/04-provider-gap.png)
 
-The casino itself ran every day this week, but one or more of its providers did not. This is the
+The client itself ran every day this week, but one or more of its providers did not. This is the
 diagnostic view: the surviving green cells are what tell you the client is alive and reachable, and
 that the fault is specific to one integration rather than to the account.
 **Action: is that provider still meant to be live for this client?**
@@ -178,23 +178,23 @@ that the fault is specific to one integration rather than to the account.
 Measured on the synthetic dataset in this repo, so every figure below is reproducible by running
 `data/generate_synthetic_data.py` and opening the workbook.
 
-| Routing | Casinos | Share |
+| Routing | Clients | Share |
 |---|---|---|
 | ① Never live in the window | 10 | 7.7% |
 | ② Underperforming | 10 | 7.7% |
-| ③ Whole casino dark this week | 13 | 10.0% |
-| ④ Provider stopped, casino healthy | 40 | 30.8% |
+| ③ Whole client dark this week | 13 | 10.0% |
+| ④ Provider stopped, client healthy | 40 | 30.8% |
 | Healthy — not listed at all | 57 | 43.8% |
 
-- **Duplicate routing: 0.** Every casino lands in exactly one table.
-- **Requiring action this week (③ + ④): 53 casinos across 14 account managers ≈ 3.8 each.**
-- Excluding providers that have never carried traffic from the routing test removes **34 casinos**
-  from table ④ — casinos that were listed *only* because of one batch-enabled integration that
+- **Duplicate routing: 0.** Every client lands in exactly one table.
+- **Requiring action this week (③ + ④): 53 clients across 14 account managers ≈ 3.8 each.**
+- Excluding providers that have never carried traffic from the routing test removes **34 clients**
+  from table ④ — clients that were listed *only* because of one batch-enabled integration that
   had never gone live. That single condition is 46% of that table.
 
 **Status: the redesign is built and approved; it has not yet run long enough in production to
 measure.** The number that would actually prove or disprove it is the week-over-week repeat rate —
-what share of this week's rows are the same casino × provider as last week's. That is the next
+what share of this week's rows are the same client × provider as last week's. That is the next
 thing I would build, and I would rather say so than quote an impact figure I have not measured.
 
 ---
@@ -219,7 +219,7 @@ thing I would build, and I would rather say so than quote an impact figure I hav
 |---|---|
 | [`workbook/`](workbook/) | The packaged Tableau workbook (`.twbx`), with data embedded — downloadable and openable |
 | [`data/generate_synthetic_data.py`](data/generate_synthetic_data.py) | Generates the dataset; reproduces four real-world scenarios by construction |
-| [`data/traffic_monitor_synthetic.csv`](data/) | 38,800 rows · 130 casinos · 8 providers · 50 days |
+| [`data/traffic_monitor_synthetic.csv`](data/) | 38,800 rows · 130 clients · 8 providers · 50 days |
 | [`docs/calculated-fields.md`](docs/calculated-fields.md) | Every calculated field, with the design reasoning and the Tableau order-of-operations traps |
 | [`docs/user-guide.md`](docs/user-guide.md) | The guide written for the people who receive the report |
 
